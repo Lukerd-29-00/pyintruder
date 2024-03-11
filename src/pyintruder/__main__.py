@@ -6,10 +6,33 @@ import pathlib
 import typing
 import asyncio
 import sys
+
+class ListDictsAction(argparse.Action):
+    def __init__(self, option_strings, dest, nargs=0, default=None,type=None,choices=None,required=False,help=None,metavar=None):
+        _option_strings = list(option_strings)
+        super(ListDictsAction,self).__init__(option_strings=_option_strings,dest=dest,nargs=nargs,default=default,type=type,choices=choices,required=required,help=help,metavar=metavar)
+
+    def __call__(self,parser,namespace,values,option_string=None):
+        Tr = importlib_resources.files("pyintruder.dictionaries")
+        for file in Tr.iterdir():
+            with importlib_resources.as_file(file) as path:
+                if path.is_file() and path.suffix == '.txt':
+                    print(path.name)
+        
+        parser.exit()
+
 parser = argparse.ArgumentParser(
     prog='pyintruder',
     description="Runs brute-force attacks on a website using python format strings replaced with elements from dictionaries",
     epilog="For more information visit https://github.com/Lukerd-29-00/pyintruder"
+)
+parser.add_argument(
+    '-l',
+    '--ls',
+    metavar="list dictionaries",
+    dest="ls",
+    action=ListDictsAction,
+    help="List the dictionaries available by default in the package."
 )
 
 parser.add_argument(
@@ -28,11 +51,7 @@ parser.add_argument(
     '-v',
     '--verbose',
     metavar="verbose",
-    action="store_const",
-    const=True,
-    default=False,
-    dest="verbose",
-    required=False,
+    action=argparse.BooleanOptionalAction,
     help="Log debug messages to stdout"
 )
 
@@ -46,6 +65,8 @@ parser.add_argument(
     nargs='+',
     help="A mapping of template variables to dictionary files in format variable:path."
 )
+
+
 
 def starts_with_pwd(path: str):
     idx = path.find('/')
@@ -121,6 +142,7 @@ async def main(template_file: str, dictionaries: str, verbose: bool, host: str):
 
 if __name__ == "__main__":
     args = parser.parse_args()
+
     template_file = args.template_file
     dictionaries = args.dictionaries
     verbose = args.verbose
