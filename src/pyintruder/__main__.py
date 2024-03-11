@@ -57,6 +57,16 @@ parser.add_argument(
     required=False,
     help="Log debug messages to stdout"
 )
+parser.add_argument(
+    '-s',
+    '--no-ssl',
+    metavar="disable SSL",
+    action="store_const",
+    const=False,
+    default=True,
+    required=False,
+    help="Disable SSL certificate verification"
+)
 
 parser.add_argument(
     '-d',

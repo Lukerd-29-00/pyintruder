@@ -30,14 +30,16 @@ class IntruderSession():
     _vars_to_filenames: typing.Dict[str,typing.Union[str,pathlib.Path]]
     _vars_to_files: typing.Dict[str,io.TextIOWrapper]
     _logger: logging.Logger
+    _verify_ssl: bool
 
-    def __init__(self, host: str, template: pathlib.Path, mapping: typing.Dict[str,pathlib.Path]):
+    def __init__(self, host: str, template: pathlib.Path, mapping: typing.Dict[str,pathlib.Path],verify_ssl:bool=True):
         with open(template) as f:
             self._host = host
             self._base_method, self._base_path, self._base_headers, self._base_body = parse_template(f.read())
         self._vars_to_filenames = dict(mapping)
         self._vars_to_files = {}
         self._logger = logging.getLogger("Intruder")
+        self._verify_ssl = verify_ssl
 
         
     def __enter__(self)->"IntruderSession":
@@ -83,7 +85,7 @@ class IntruderSession():
         return response.status
 
     async def send_request(self,session: aiohttp.ClientSession, method: str, path: str, headers: typing.Dict[str,str], body: str, cb):
-        async with session.__getattribute__(method.lower())(self._host + path,headers=headers,data=body,verify_ssl=False) as response:
+        async with session.__getattribute__(method.lower())(self._host + path,headers=headers,data=body,verify_ssl=self._verify_ssl) as response:
             output = await cb(response)
             self._logger.debug(f"{method} {path}: {output}")
             return output
