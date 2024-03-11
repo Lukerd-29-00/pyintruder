@@ -79,7 +79,16 @@ parser.add_argument(
     help="A mapping of template variables to dictionary files in format variable:path."
 )
 
-
+parser.add_argument(
+    '-b',
+    '--batch-size',
+    metavar="batch size",
+    required=False,
+    type=int,
+    action="store",
+    dest="batch_size",
+    default=100
+)
 
 def starts_with_pwd(path: str):
     idx = path.find('/')
@@ -88,7 +97,7 @@ def starts_with_pwd(path: str):
     else:
         return path[:idx] == '.'
 
-async def main(template_file: str, dictionaries: str, verbose: bool, host: str):
+async def main(template_file: str, dictionaries: str, verbose: bool, host: str, batch_size: int):
     if verbose:
         logger = logging.getLogger("Intruder")
         sh = logging.StreamHandler(stream=sys.stderr)
@@ -133,7 +142,7 @@ async def main(template_file: str, dictionaries: str, verbose: bool, host: str):
             vars_to_files[var] = pth
 
     with Intruder.IntruderSession(host,template_file,vars_to_files) as intruder:
-        data = await intruder.intrude_pitchfork()
+        data = await intruder.intrude_pitchfork(batch_size=batch_size)
     files = {}
     for k in vars_to_files.keys():
         files[k] = (vars_to_files[k].open())
@@ -160,5 +169,6 @@ if __name__ == "__main__":
     dictionaries = args.dictionaries
     verbose = args.verbose
     host = args.host
+    batch_size = args.batch_size
 
-    asyncio.run(main(template_file,dictionaries,verbose,host))
+    asyncio.run(main(template_file,dictionaries,verbose,host,batch_size))
