@@ -51,7 +51,10 @@ parser.add_argument(
     '-v',
     '--verbose',
     metavar="verbose",
-    action=argparse.BooleanOptionalAction,
+    action="store_const",
+    const=True,
+    default=False,
+    required=False,
     help="Log debug messages to stdout"
 )
 
