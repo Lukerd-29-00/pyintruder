@@ -91,11 +91,7 @@ parser.add_argument(
 )
 
 def starts_with_pwd(path: str):
-    idx = path.find('/')
-    if idx == -1:
-        return path == '.'
-    else:
-        return path[:idx] == '.'
+    return len(path) >= 2 and (path[:2] == './' or path[:2] == '.\\')
 
 async def main(template_file: str, dictionaries: str, verbose: bool, host: str, batch_size: int):
     if verbose:
