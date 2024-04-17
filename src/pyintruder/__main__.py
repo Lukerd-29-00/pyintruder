@@ -76,7 +76,7 @@ parser.add_argument(
     dest="dictionaries",
     action='store',
     nargs='+',
-    help="A mapping of template variables to dictionary files in format variable:path."
+    help="A mapping of template variables to dictionary files in format variable,path."
 )
 
 parser.add_argument(
@@ -119,9 +119,9 @@ async def main(template_file: str, dictionaries: str, verbose: bool, host: str, 
             default_files.add(path.name)
 
     for arg in dictionaries:
-        split_arg: typing.List[str] = arg.split(':')
+        split_arg: typing.List[str] = arg.split(',')
         if len(split_arg) != 2:
-            raise ValueError(f"dictionary {arg} is not a valid format; there should be exactly one ':' character.")
+            raise ValueError(f"dictionary {arg} is not a valid format; there should be exactly one ',' character.")
         var, file = tuple(split_arg)
         pth = pathlib.Path(file)
         if starts_with_pwd(file) or pth.is_absolute():
