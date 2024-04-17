@@ -87,7 +87,7 @@ parser.add_argument(
     type=int,
     action="store",
     dest="batch_size",
-    default=100
+    default=10
 )
 
 def starts_with_pwd(path: str):
