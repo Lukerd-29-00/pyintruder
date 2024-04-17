@@ -37,7 +37,7 @@ parser.add_argument(
 
 parser.add_argument(
     'template_file',
-    metavar="Template file",
+    metavar="Template-file",
     action="store",
     help="The file containing the base request."
 )
