@@ -57,7 +57,12 @@ class IntruderSession():
         raw_headers = self._base_headers.format(**mp)
         headers = {}
         for line in raw_headers.split('\n'):
-            key, value = tuple(line.strip().split(': ',maxsplit=2)) #TODO: support trailing whitespace
+            split_line = line.strip().split(': ',maxsplit=2) #TODO: support trailing whitespace
+            if len(split_line) == 2:
+                key, value = tuple(split_line)
+            else:
+                key = split_line[0]
+                value = ''
             headers[key] = value
         body = self._base_body.format(**mp)
 
