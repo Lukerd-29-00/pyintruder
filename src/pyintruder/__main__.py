@@ -74,9 +74,9 @@ parser.add_argument(
     metavar="dictionaries",
     required=True,
     dest="dictionaries",
-    action='store',
-    nargs='+',
-    help="A mapping of template variables to dictionary files in format variable,path."
+    action='append',
+    type=str,
+    help="A mapping of template variables to dictionary files in format variable,path.",
 )
 
 parser.add_argument(
