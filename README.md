@@ -21,11 +21,53 @@ If you need more information than the status code, you will need to write your o
 This tool takes two positional arguments; the template file followed by the host being contacted.
 
 #### Template-file
-This file should contain the raw text of an HTTP request. You can obtain this easily by examining the request in burp suite, and then copying it into a text file. The tool will interpret this as a python format string. This means you can substitute values by putting them in curly braces ('{' and '}'). If you need to use literal curly braces, you simply type double brackets '{{' and '}}'. Make sure you don't leave curly brackets that need to be escaped this way accidentally. Here's an example:
+This file should contain the raw text of an HTTP request. You can obtain this easily by examining the request in burp suite, and then copying it into a text file. The tool will interpret this as a python format string. This means you can substitute values by putting them in curly braces ('{' and '}'). If you need to use literal curly braces, you simply type double brackets '{{' and '}}'. Make sure you don't leave curly brackets that need to be escaped this way accidentally. 
 
-<img src="raw_request.png">
+##### Sample template file
+here's the original request to the server:
 
-<img src="template.png">
+```
+GET / HTTP/1.1
+Host: www.test.com
+Sec-Ch-Ua: "Chromium";v="123", "Not:A-Brand";v="8"
+Sec-Ch-Ua-Mobile: ?0
+Sec-Ch-Ua-Platform: "Windows"
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.122 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate, br
+Accept-Language: en-US,en;q=0.9
+Priority: u=0, i
+Connection: close
+
+
+```
+Now let's replace the method with a variable that we can substitute:
+
+```
+{verb} / HTTP/1.1
+Host: www.test.com
+Sec-Ch-Ua: "Chromium";v="123", "Not:A-Brand";v="8"
+Sec-Ch-Ua-Mobile: ?0
+Sec-Ch-Ua-Platform: "Windows"
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.122 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate, br
+Accept-Language: en-US,en;q=0.9
+Priority: u=0, i
+Connection: close
+
+
+```
 
 This allows you to substitute the variable 'verb' for HTTP verbs. See the dictionaries option to map these variables to a list of values to substitute them for.
 
@@ -42,7 +84,59 @@ This option (indicated by -d or --dictionaries) maps variables in the template f
 This tool comes with a few default wordlists. You can list these dictionaries with the -l or --ls switch (see below). To use these, you can simply type the file name of one of the dictionaries instead of a path to a file. You can use a file that has the same name as one of the default dictionaries by starting the file name with './' (or .\\ on windows).
 
 ##### multipile occurrences
-The dictionaries option can occur several times, to allow you to substitute multipile variables with different wordlists. This will behave like Burp Suite's pitchfork attack; it will move through the lists in lockstep. For example, if list 1 has a,b and list 2 has b,a you will send two requests with values (a, b) and (b, a). If you use several dictionaries, they must have exactly the same number of values, otherwise an error will occur.
+The dictionaries option can occur several times, to allow you to substitute multipile variables with different wordlists. This will behave like Burp Suite's pitchfork attack; it will move through the lists in lockstep. Here's an example. Suppose you have two dictionary files, list_1.txt and list_2.txt.
+
+list_1.txt
+```
+a
+b
+```
+list_2.txt
+```
+b
+a
+```
+
+and the following template:
+```
+GET /{value_1}/{value_2} HTTP/1.1
+Host: www.google.com
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.122 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+X-Client-Data: COHrygE=
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Sec-Ch-Ua: "Chromium";v="123", "Not:A-Brand";v="8"
+Sec-Ch-Ua-Mobile: ?0
+Sec-Ch-Ua-Full-Version: ""
+Sec-Ch-Ua-Arch: ""
+Sec-Ch-Ua-Platform: "Windows"
+Sec-Ch-Ua-Platform-Version: ""
+Sec-Ch-Ua-Model: ""
+Sec-Ch-Ua-Bitness: ""
+Sec-Ch-Ua-Wow64: ?0
+Sec-Ch-Ua-Full-Version-List: 
+Accept-Encoding: gzip, deflate, br
+Accept-Language: en-US,en;q=0.9
+Priority: u=0, i
+Connection: close
+
+
+```
+
+now if we run the following command:
+```bash
+python3 -m pyintruder template.txt https://www.google.com -d value_1,list_1.txt -d value_2,list_2.txt --verbose
+```
+the tool makes these two requests:
+```
+GET /b/a: 404
+GET /a/b: 404
+```
+
 
 #### help
 The -h or --help switch will display a brief summary of the usage as a reminder if you forget the syntax.
@@ -51,23 +145,63 @@ The -h or --help switch will display a brief summary of the usage as a reminder 
 The -l or --ls switch will display the files included in the pyintruder library itself (see default dictionaries above). No other parameters should be listed if this switch is used.
 
 #### verbose
-This switch tells the tool to log requests as they happen, allowing you to see that the tool is making progress. It also displays the URL, which can be useful for debugging.
+The -v or --verbose switch tells the tool to log requests as they happen, allowing you to see that the tool is making progress. It also displays the URL, which can be useful for debugging.
 
 #### no-ssl
 The -s or --no-ssl switch indicates that the library should continue if the certificate is invalid (e.g. a self-signed certificate)
 
 #### batch size
-the -b or --batch-size switch is the number of requests that are sent out at once (the requests are handled asynchronously). The default value is 10. The higher the number, the faster the attack completes. However, too high a batch size may trigger rate limiting issues or overwhelm the server if you aren't careful.
+the -b or --batch-size switch is the number of requests that are sent out at once (the requests are handled asynchronously). The default value is 10. The higher the number, the faster the attack completes. However, too high a batch size may trigger rate limiting issues or overwhelm the server if you aren't careful. The default value is 10, so if this parameter isn't specified, the tool won't send more than 10 requests at a time.
 
 ### Example usage
 Here is a sample of using the tool. First, we copy the raw text of a request from burp into a file.
 
 <img src="burp_request.png">
-<img src="raw_request.png">
+template.txt:
+
+```
+GET / HTTP/1.1
+Host: www.test.com
+Sec-Ch-Ua: "Chromium";v="123", "Not:A-Brand";v="8"
+Sec-Ch-Ua-Mobile: ?0
+Sec-Ch-Ua-Platform: "Windows"
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.122 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate, br
+Accept-Language: en-US,en;q=0.9
+Priority: u=0, i
+Connection: close
+
+
+```
 
 Then we replace some part of the request (in this case the method) with a template string:
 
-<img src="template.png>
+```
+{verb} / HTTP/1.1
+Host: www.test.com
+Sec-Ch-Ua: "Chromium";v="123", "Not:A-Brand";v="8"
+Sec-Ch-Ua-Mobile: ?0
+Sec-Ch-Ua-Platform: "Windows"
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.122 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate, br
+Accept-Language: en-US,en;q=0.9
+Priority: u=0, i
+Connection: close
+
+
+```
 
 Now we enter the command:
 ```bash
@@ -75,6 +209,16 @@ python3 -m pyintruder -d verb,HTTP_verbs.txt template.txt https://www.google.com
 ```
 
 and get this output:
-<img src ="cli_output.png">
+```
+-----RESULTS-----
+verb=DELETE: 405
+verb=GET: 200
+verb=HEAD: 200
+verb=OPTIONS: 405
+verb=PATCH: 405
+verb=POST: 405
+verb=PUT: 405
+-----------------
+```
 
 And now we can see that https://www.google.com/ only accepts the GET and HEAD methods.
