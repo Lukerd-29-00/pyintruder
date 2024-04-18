@@ -1,5 +1,5 @@
 import argparse
-from . import Intruder
+from . import Basic
 import importlib_resources
 import logging
 import pathlib
@@ -137,8 +137,8 @@ async def main(template_file: str, dictionaries: str, verbose: bool, host: str, 
                 raise ValueError(f"Not a valid file: {file}")
             vars_to_files[var] = pth
 
-    with Intruder.IntruderSession(host,template_file,vars_to_files) as intruder:
-        data = await intruder.intrude_pitchfork(batch_size=batch_size)
+    with Basic.StatusCodePitchforkIntruderSession(host,template_file,vars_to_files) as intruder:
+        data = await intruder.intrude(batch_size=batch_size)
     files = {}
     for k in vars_to_files.keys():
         files[k] = (vars_to_files[k].open())

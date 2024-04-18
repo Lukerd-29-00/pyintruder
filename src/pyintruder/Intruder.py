@@ -5,6 +5,8 @@ import io
 from urllib import parse
 import logging
 import pathlib
+import abc
+import typing
 
 def parse_template(template: str):
     lines = template.split('\n')
@@ -21,7 +23,9 @@ def parse_template(template: str):
     
     return method, path, headers, body
 
-class IntruderSession():
+T = typing.TypeVar("T")
+
+class IntruderSession(abc.ABC,typing.Generic[T]):
     _host: str
     _base_method: str
     _base_path: str
@@ -42,7 +46,7 @@ class IntruderSession():
         self._verify_ssl = verify_ssl
 
         
-    def __enter__(self)->"IntruderSession":
+    def __enter__(self)->"IntruderSession[T]":
         for key in self._vars_to_filenames.keys():
             self._vars_to_files[key] = self._vars_to_filenames[key].open()
         return self
@@ -68,48 +72,33 @@ class IntruderSession():
 
         return method, path, headers, body
 
-    def _request_data_pitchfork(self):
-        if len(self._vars_to_files.keys()) != len(self._vars_to_filenames):
-            raise ValueError("Session was not entered (use the with keyword)")
-        while True:
-            empty_found = False
-            values_map = {}
-            for key in self._vars_to_files.keys():
-                line = self._vars_to_files[key].readline()
-                if line == '':
-                    empty_found = True
-                elif empty_found:
-                    raise ValueError(f"file {self._vars_to_filenames[key]} was longer than the shortest file.")
+    @abc.abstractmethod
+    def _request_data(self)->typing.Generator[typing.Tuple[str,str,typing.Dict[str,str],str],None,None]:
+        pass
 
-                values_map[key] = parse.quote(line.strip()) #TODO: support trailing whitespace
-            if empty_found:
-                break
-            yield self._format_request_params(values_map)
+    @abc.abstractmethod
+    async def _process_response(self, response: aiohttp.ClientResponse)->T:
+        pass
 
-    async def _get_status_code(self, response: aiohttp.ClientResponse)->int:
-        return response.status
-
-    async def send_request(self,session: aiohttp.ClientSession, method: str, path: str, headers: typing.Dict[str,str], body: str, cb):
+    async def send_request(self,session: aiohttp.ClientSession, method: str, path: str, headers: typing.Dict[str,str], body: str)->T:
         async with session.__getattribute__(method.lower())(self._host + path,headers=headers,data=body,verify_ssl=self._verify_ssl) as response:
-            output = await cb(response)
+            output = await self._process_response(response)
             self._logger.debug(f"{method} {path}: {output}")
             return output
-
-    async def intrude_pitchfork(self, batch_size: int = 100, desired_value: typing.Optional[typing.Callable] = None):
-        if desired_value is None:
-            desired_value = self._get_status_code
-
+        
+    async def intrude(self, batch_size: int = 10)->typing.List[T]:
         if batch_size <= 0:
             raise ValueError(f"batch size of {batch_size} is invaild; batches must be positive.")
         
         output = []
-        param_iter = self._request_data_pitchfork()
+        param_iter = self._request_data()
         async with aiohttp.ClientSession() as session:
             while True:
                 batch = []
                 for _, params in zip(range(batch_size),param_iter):
-                    batch.append(asyncio.create_task(self.send_request(session,*params,cb=desired_value)))
+                    batch.append(asyncio.create_task(self.send_request(session,*params)))
                 if len(batch) == 0: #happens if param_iter is empty
                     break
                 output.extend(await asyncio.gather(*batch))
         return output
+        
